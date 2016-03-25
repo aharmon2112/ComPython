@@ -1,5 +1,7 @@
-//IMPLEMENTATION
-#include "Header.h"
+#include "PythonHeader.h"
+#include <map>
+#include<string>
+#include<algorithm>
 using namespace std;
 
 COMPy::COMPy()
@@ -15,8 +17,14 @@ COMPy::COMPy()
 
 
 
-		size_t found, findComma, bracketFindLeft, bracketFindRight;
+
+
+
+
+		size_t found, findComma, bracketFindLeft, bracketFindRight, curlyBraceRight, curlyBraceLeft;
 		size_t front = 0;
+
+
 
 		front = user_input.find(' ');
 		while (front != string::npos)
@@ -31,7 +39,15 @@ COMPy::COMPy()
 		findComma = user_input.find(",");
 		bracketFindLeft = user_input.find("[");
 		bracketFindRight = user_input.find("]");
-		if (bracketFindLeft != string::npos && bracketFindRight != string::npos && back != string::npos && bracketFindRight < back) //example: x[1] = 32
+		curlyBraceLeft = user_input.find("{");
+		curlyBraceRight = user_input.find("}");
+
+		if(curlyBraceLeft != string::npos && curlyBraceRight != string::npos && back != string::npos && curlyBraceLeft > back && curlyBraceRight > curlyBraceLeft)
+		{
+			createDic(user_input, back, curlyBraceLeft, curlyBraceRight);
+		}
+		
+		else if (bracketFindLeft != string::npos && bracketFindRight != string::npos && back != string::npos && bracketFindRight < back) //example: x[1] = 32
 		{
 			size_t anotherBracket = user_input.find("[", back + 1); //checks if there is another bracket after the = sign. example x[1] = [1,2]
 			front = bracketFindLeft + 1;
@@ -214,9 +230,17 @@ COMPy::COMPy()
 					break;
 			}
 		}
-
+		iter_mapDatabase = mapDatabase.find(user_input);
 		iter_database = database.find(user_input);
-		if (iter_database != database.end()) //if the user enters the name of a created list.
+
+		if(iter_mapDatabase != mapDatabase.end())
+		{
+			iter_database = iter_mapDatabase->second.begin();	
+			cout << "[";
+			copy(iter_database, iter_mapDatabase->second.end(), ostream_iterator<List*>(cout, " "));
+			cout << endl;
+		}		
+		else if (iter_database != database.end()) //if the user enters the name of a created list.
 		{
 			cout << "[";
 			display(iter_database->second);
@@ -460,5 +484,77 @@ void COMPy::change_item_string(std::string data, List* &node, const int& index)
 		node->int_data = 0;
 		node->double_data = 0;
 		node->string_data = data;
+	}
+}
+void COMPy::createDic(std::string& user_input, size_t equals, size_t leftBrace, size_t rightBrace)
+{
+	string key;
+	map<string, List*> temp_dic;
+	bool is_key = true;
+	if(rightBrace == leftBrace + 1)//Base case for empty dictionary
+	{
+		key = user_input.substr(0, equals);	
+		mapDatabase.insert(pair<string, map<string, List*>>(key, temp_dic));
+	}
+	else
+	{
+		key = user_input.substr(0, equals);	
+		mapDatabase.insert(pair<string, map<string, List*>>(key, temp_dic));
+
+		size_t colon = user_input.find(":");
+		size_t comma = user_input.find(",");
+		while(colon != string::npos)
+		{
+			string temp_key = user_input.substr(leftBrace+1, colon);
+			string temp_data = user_input.substr(colon+1, comma);
+			if(is_key)
+			{
+				temp_dic.insert(pair<string, List*>(temp_key, findDataType(temp_data)));
+			}
+			colon = user_input.find(":", colon + 1);
+			comma = user_input.find(",", comma + 1);
+		}
+
+
+
+	}
+}
+COMPy::List*& COMPy::findDataType(string data)
+{
+	string temp_substr = "";
+	size_t quotes = data.find('"');
+	size_t period = data.find('.');
+	if(quotes != string::npos)
+	{
+		temp_substr = data.substr(1, data.size() - 1);
+		List* tempList = new List;
+		tempList->dlink = NULL;
+		tempList->double_data = 0.0;
+		tempList->int_data = 0;
+		tempList->rlink = NULL;
+		tempList->string_data = temp_substr;
+		return tempList;
+	}
+	else if(period != string::npos)
+	{
+		temp_substr = data.substr(0, data.size());
+		List* tempList = new List;
+		tempList->dlink = NULL;
+		tempList->double_data = stoi(temp_substr);
+		tempList->int_data = 0;
+		tempList->rlink = NULL;
+		tempList->string_data = temp_substr;
+		return tempList;
+	}
+	else
+	{
+		temp_substr = data.substr(1, data.size() - 1);
+		List* tempList = new List;
+		tempList->dlink = NULL;
+		tempList->double_data = 0.0;
+		tempList->int_data = stoi(temp_substr);
+		tempList->rlink = NULL;
+		tempList->string_data = temp_substr;
+		return tempList;
 	}
 }
